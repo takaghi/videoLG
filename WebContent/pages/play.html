@@ -1,0 +1,187 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>LG Browser Sample</title>
+<link href="../css/lge.css" rel="stylesheet" type="text/css" />
+<script language="javascript">
+
+var userAgent = new String(navigator.userAgent); 
+var BrowserVer = userAgent.substring( 
+userAgent.search(/LG Browser/) + 11); 
+BrowserVer = BrowserVer.split("(", 1); 
+if(BrowserVer >= "3.0.23") {	
+window.onmouseon = mouseon_handler; 
+}
+
+
+</script>
+</head>
+
+
+<body style="margin: 0px; z-index: 0; overflow:hidden;" onkeydown="processKeyDown(event);" onload="playInit();" onunload="playUnload();" onmousedown="clickFullScreen(event);" onselectstart="return false;">
+
+
+<div id="mediaDiv" style="position: relative; width: 500px; height: 350px; z-index: 9500; border: 1px solid red;">
+	<script>
+	
+	
+var mediaUrl = [];
+
+mediaUrl[0] = "../media/LG Commercial - Something Better with SL Series LED LCD TV - Live Borderless_(HD).mp4";
+mediaUrl[1] = "http://23.20.45.91/tv/videos/latest-uploads/1.mp4";
+	
+	
+		playMediaId = 1;
+		var obj = '<object id="media" data="'+mediaUrl[playMediaId]+'" type="application/x-netcast-av" width="500" height="350" autostart="true" downloadable="false"></object>';
+		document.write(obj);
+		
+	</script>
+	
+</div>
+
+<div style="border:1px solid green; padding: 2px">
+	<ul>
+		<li onclick="executeAction('play')">play</li>
+		<li onclick="executeAction('pause')">pause</li>
+		<li onclick="executeAction('stop')">stop</li>
+		<li onclick="seekMedia('FF')">FF</li>
+		<li onclick="seekMedia('RE')">RE</li>
+	</ul>
+</div>
+
+<div id="bufered">0</div>
+<div id="duration">0</div>
+<div id="position">0</div>
+<div id="loading"></div>
+<div id="action"></div>
+
+
+<script>
+
+function getMedia() {
+	return document.getElementById("media");
+}
+
+var m;
+
+function init(){
+	m = getMedia();
+	if(m != null) {
+		m.onPlayStateChange = onPlayStateChange;
+		m.onError = onError;
+	}
+}
+
+function onError() {
+	var media = getMedia();
+	var errorMsg = "error occured. (ERRCODE:"+media.error+")";
+	alert(errorMsg);
+}
+
+function onPlayStateChange() {
+	var media = getMedia();
+	var playState = media.playState;
+	if(playState == 5) {
+		//when media terminated.?
+		executeAction('stop');
+	} else if(playState==1) {
+		//when media start ?
+		document.getElementById("loading").innerHTML = "LOADED";
+		document.getElementById("action").innerHTML = "PLAYING";
+		setInterval(function(){
+			refresh();
+		}, 1000);
+		setTimeout(function(){
+			executeAction('pause');
+		}, 1000);		
+		//executeAction('pause');
+	} else if(playState == 4) {
+		//buffring
+		document.getElementById("loading").innerHTML = "loading...";
+	} else if(playState == 0) {
+		
+	}
+}		
+
+function executeAction(action){
+	switch (action){
+		case "pause":
+			m.play(0);
+			document.getElementById("action").innerHTML = "PAUSED";
+			break;
+		case "play":
+			m.play(1);
+			document.getElementById("action").innerHTML = "PLAYING";
+			break;
+		case "stop":
+			m.stop();
+			document.getElementById("action").innerHTML = "STOPED";
+			break;
+	}
+}
+
+var seekByRCUDelaySec = 0;
+var seekByRCUPosition = -1;
+var seekOnePercent = 0;
+var seekFivePercent = 0;
+
+function seekMedia(action) {
+	
+	var m = getMedia();
+	var pi = m.mediaPlayInfo();
+	var duration = pi.duration;
+	if(pi.currentPosition > pi.duration) {
+		duration = pi.currentPosition;
+	}
+	if(seekByRCUPosition == -1 ) {
+		seekOnePercent = Math.floor(duration/100);
+		seekFivePercent = Math.floor(duration/10);
+		seekByRCUPosition = pi.currentPosition;
+	} else if (seekByRCUPosition == 0) {
+		seekOnePercent = Math.floor(duration/100);
+		seekFivePercent = Math.floor(duration/10);
+	}
+	seekByRCUDelaySec = 2;
+	
+	switch(action) {
+		case 'FF' :
+			// +5 %
+			seekByRCUPosition = new Number(seekByRCUPosition) + seekFivePercent;
+			if(seekByRCUPosition > duration ) {
+				seekByRCUPosition = duration;
+			}
+			break; 
+		case 'RE' :
+			// -5 %
+			seekByRCUPosition = new Number(seekByRCUPosition) - seekFivePercent;
+			if(seekByRCUPosition < 0 ) {
+				seekByRCUPosition = 0;
+			} 
+			break;
+		default :
+			return; 
+	}
+	//
+	
+	//	alert(seekByRCUPosition)
+		m.seek(seekByRCUPosition);
+	//	seekByRCUDelaySec = -1;
+		seekByRCUPosition = -1;
+		refresh();
+}
+
+function refresh() {
+	var pi = m.mediaPlayInfo();
+	document.getElementById("bufered").innerHTML = pi.bufEnd;
+	document.getElementById("position").innerHTML = pi.currentPosition;
+	document.getElementById("duration").innerHTML = pi.duration;
+}
+
+
+init();
+
+</script>
+
+</body>
+</html>
